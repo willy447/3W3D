@@ -1,0 +1,199 @@
+﻿<!DOCTYPE html>
+
+<html>
+
+<head>
+<style>
+#info {
+    position: absolute;
+    top: 0px;
+    width: 100%;
+    padding: 10px;
+    text-align: center;
+    color: #ff0000
+}
+
+</style>
+</head>
+
+<body> 
+
+    <br/> <a href="javascript:Toggle();">OPEN/CLOSE </a>
+</div>
+
+<audio id="collisionsound" style="display:none">
+<source src="music/close.mp3" type='audio/mp3'>
+</audio>
+
+<audio id="soundtrack"  style="display:none">
+<source src="music/door.wav" type='audio/wav'>
+</audio>
+
+
+
+<script src="js/three.min.js"></script>
+<script src="js/OrbitControls.js"></script>
+    
+</script>
+<script> 
+var camera, scene;
+var angle = 3.15;
+var turn = 1,check=1;
+var cubeU,cubeD,cubeL,cubeR,door;
+var renderer, geometry, material, mesh, light, controls;
+var cylinder1,cylinder2;
+var doorC;
+var collisionSound, soundTrack;
+
+init();
+animate();
+
+function Toggle() {
+    turn^=1;
+}
+
+function init() {
+	collisionSound = document.getElementById ('collisionsound');
+	soundTrack = document.getElementById ('soundtrack');
+	soundTrack1 = document.getElementById ('soundtrack1');
+	open = document.getElementById ('open');
+	scene = new THREE.Scene();
+
+    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000);
+    camera.position.z = 500;
+    scene.add(camera);
+
+    geometry = new THREE.BoxGeometry(20, 20, 20);
+    material = new THREE.MeshLambertMaterial();
+
+    mesh = new THREE.Mesh(geometry, material);
+    
+
+	THREE.ImageUtils.crossOrigin = '';
+    var texture = THREE.ImageUtils.loadTexture('images/wood.jpg');
+    var bumptex = THREE.ImageUtils.loadTexture('images/wood1.jpg');
+   
+
+	cubeD = new THREE.Mesh (new THREE.BoxGeometry (80,5,10),new THREE.MeshLambertMaterial ({color: 0xDC7100}));
+
+	cubeD.position.set (42.5, 2.5, -5);
+	scene.add (cubeD);
+	
+	cubeR = new THREE.Mesh (new THREE.BoxGeometry (5,150,10),new THREE.MeshLambertMaterial ({color: 0xDC7100}));
+
+	cubeR.position.set (2.5, 75, -5);
+	scene.add (cubeR);
+	
+	cubeL = new THREE.Mesh (new THREE.BoxGeometry (5,150,10),new THREE.MeshLambertMaterial ({color: 0xDC7100}));
+
+	cubeL.position.set (85, 75, -5);
+	scene.add (cubeL);
+	
+	
+    cubeU = new THREE.Mesh (new THREE.BoxGeometry (80,5,10),new THREE.MeshLambertMaterial ({color: 0xDC7100}));
+
+	cubeU.position.set (42.5, 147.5, -5);
+	scene.add (cubeU);
+	
+	
+
+    door = new THREE.Mesh (new THREE.BoxGeometry (78,140,7),new THREE.MeshPhongMaterial ({map:texture,bumpMap: bumptex,bumpScale: 0.9,side: THREE.DoubleSide
+                            }));
+    door.rotation.y = angle;
+	cubeL.add (door);
+   
+
+	cylinder1 = new THREE.Mesh (new THREE.CylinderGeometry( 1, 1, 20, 32 ),new THREE.MeshBasicMaterial( {map: new THREE.ImageUtils.loadTexture ('images/ww.jpg')}));
+	cylinder1.position.set(82,120,1);
+    scene.add( cylinder1 );
+	
+	cylinder2 = new THREE.Mesh (new THREE.CylinderGeometry( 1, 1, 20, 32 ),new THREE.MeshBasicMaterial( {map: new THREE.ImageUtils.loadTexture ('images/ww.jpg')}));
+	cylinder2.position.set(82,30,1);
+    scene.add( cylinder2 );
+
+
+	doorC = new  THREE.Mesh (new THREE.CylinderGeometry( 3, 1, 6, 32 ),new THREE.MeshBasicMaterial( {map: new THREE.ImageUtils.loadTexture ('images/ww.jpg')}));
+    cubeL.add( doorC );				
+	
+
+    light = new THREE.PointLight(0xffffff);
+    light.position.set(100, 300, 200);
+    scene.add(light);
+
+    var gridXZ = new THREE.GridHelper(100, 10);
+    gridXZ.setColors(new THREE.Color(0xff0000), new THREE.Color(0xffffff));
+    scene.add(gridXZ);
+
+    renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x888888);
+
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+    document.body.appendChild(renderer.domElement);
+}
+
+
+function animate() {
+    controls.update();
+   
+	if (turn===0) 
+	{	
+		
+		
+		angle += 0.01;
+		if(angle > 3.15 && angle <5.0) 
+			soundTrack.play();
+		
+		if(angle >= 5) 
+		{
+			soundTrack.pause();
+			soundTrack.currentTime = 0;
+			angle = 5;
+			if(check ===1)
+			{
+				
+				check = -1;
+			}
+		}
+		
+	}		
+	
+    if (turn===1) 
+	{
+		
+		angle -= 0.01;
+		if(angle >3.15 && angle <5.0)
+			soundTrack.play();
+		if(angle <= 3.15) 
+		{		
+			soundTrack.pause();
+			soundTrack.currentTime = 0;
+			angle = 3.15;
+			if(check ===-1 )
+			{	
+				collisionSound.play();
+				
+				check = 1;	
+			}
+			
+		}
+
+	}
+
+doorC.position.set(79 * Math.cos(angle+0.01)+4, 0, -75 * Math.sin(angle+0.01)+7);
+doorC.rotation.y = angle-29.8;
+doorC.rotation.z = 29.8;
+door.rotation.y=angle;
+door.position.set(42.5 * Math.cos(angle), 0, -42.5 * Math.sin(angle)+3.5);
+    requestAnimationFrame(animate);
+    render();
+}
+
+function render() {
+    renderer.render(scene, camera);
+}
+</script>
+</body>
+
+</html>
