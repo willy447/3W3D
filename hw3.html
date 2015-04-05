@@ -46,6 +46,10 @@ function init() {
     clock = new THREE.Clock();
     
     
+	renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+	
+    renderer.setClearColor(0x888888);
     camera = new THREE.PerspectiveCamera(50, window.innerWidth /     window.innerHeight, 1, 10000);
     camera.position.z = 200;
     scene.add(camera);
@@ -124,17 +128,33 @@ function init() {
     
     
 
-    light = new THREE.PointLight(0xffffff);
-    light.position.set(100, 300, 200);
-    scene.add(light);
-
-    /*var gridXZ = new THREE.GridHelper(100, 10);
-    gridXZ.setColors(new THREE.Color(0xff0000), new THREE.Color(0xffffff));
-    scene.add(gridXZ);*/
-
-    renderer = new THREE.WebGLRenderer();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x888888);
+    light = new THREE.SpotLight(0xffffff, 1.5);
+    light.position.set(300, 300, 300);
+    scene.add(light);    
+	
+    light.castShadow = true;
+	light.shadowCameraNear = 50;
+	light.shadowCameraFar = camera.far;
+	light.shadowCameraFov = 50;
+	light.shadowBias = -0.00022;
+	light.shadowDarkness = 0.8;
+	light.shadowMapWidth = 1000;
+	light.shadowMapHeight = 1000;
+	console.log(light.angle);		
+    var ambientLight = new THREE.AmbientLight (0xAAAAAA);
+	scene.add(ambientLight);
+	
+	renderer.shadowMapEnabled = true;
+	renderer.shadowMapType = THREE.PCFShadowMap;
+	
+	floor.receiveShadow = true;
+	meshR.castShadow  = true;  
+	meshL.castShadow  = true;  
+	mesh2R.castShadow  = true;  
+	mesh2L.castShadow  = true;  
+	
+    
+   
 
     controls = new THREE.OrbitControls(camera, renderer.domElement);
 
