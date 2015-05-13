@@ -1,0 +1,422 @@
+﻿
+<html>
+
+<head>
+<style>
+#container {
+    width:60%;
+    float:left;
+    
+   margin-top: 5px;
+}
+#cnvsFrame {
+    height: 0;
+    padding-bottom:100%;
+}
+
+.fl {
+    float:left;
+    margin:20px;
+}
+.flc {
+    float:right;
+    margin:5px;
+    width:15%;
+    
+}
+body {
+    overflow: auto;
+}
+
+</style>
+</head>
+<body>
+<hr>
+<div id="container">
+<div id="cnvsFrame">
+<canvas id="cnvs"> </canvas>
+</div>
+</div>
+
+    <img src="images/Cover.jpg" class="flc" onclick="javascript:tst(1);" />
+    <img src="images/Cover1.jpg" class="flc" onclick="javascript:tst(2);" />
+    <img src="images/Cover2.jpg" class="flc" onclick="javascript:tst(3);" />
+    <img src="images/Cover3.jpg" class="flc" onclick="javascript:tst(4);" />
+	<img src="images/Cover4.jpg" class="flc" onclick="javascript:tst(5);" />
+	<img src="images/Cover5.jpg" class="flc" onclick="javascript:tst(6);" />
+	<img src="images/Cover6.jpg" class="flc" onclick="javascript:tst(7);" />
+	<img src="images/Cover7.jpg" class="flc" onclick="javascript:tst(8);" />
+<div style="clear:both"></div>
+<hr>
+
+
+
+
+
+
+<script src="js/three.min.js"></script>
+<script src="js/OrbitControls.js"></script>
+<script src="js/KeyboardState.js"></script>
+    
+</script>
+<script> 
+
+var camera, scene, renderer, geometry, material, mesh, light, controls;
+var tex1, tex2;
+var wall=1;
+var mouse = new THREE.Vector2();
+var theCanvasFrame = document.getElementById("cnvsFrame");
+init();
+animate();
+
+function chawall (which) 
+{
+	if (which == "one") {
+		wall = 1;
+	}
+	else if (which == "two"){
+		wall = 2;
+	}
+	else if (which == "three"){
+		wall = 3;
+	}
+	else if (which == "four"){
+		wall = 4;
+	}
+}
+
+function init() {
+    var theCanvas = document.getElementById("cnvs");
+    
+
+    renderer = new THREE.WebGLRenderer({
+        canvas: theCanvas,
+        antialias: true
+    });
+    var ww = theCanvasFrame.clientWidth;
+    var hh = theCanvasFrame.clientHeight;
+    renderer.setSize(ww, hh);
+    renderer.setClearColor(0x222222);
+
+    scene = new THREE.Scene();
+
+    camera = new THREE.PerspectiveCamera(50, ww/hh, 1, 1000);
+    camera.position.z = 200;
+    scene.add(camera);
+
+    //////////////////////////////////////////////////////
+    THREE.ImageUtils.crossOrigin = '';
+    tex1 = THREE.ImageUtils.loadTexture('images/Cover.jpg');
+    tex2 = THREE.ImageUtils.loadTexture('images/Cover1.jpg');
+    tex3 = THREE.ImageUtils.loadTexture('images/Cover2.jpg');
+	tex4 = THREE.ImageUtils.loadTexture('images/Cover3.jpg');
+	tex5 = THREE.ImageUtils.loadTexture('images/Cover4.jpg');
+	tex6 = THREE.ImageUtils.loadTexture('images/Cover5.jpg');
+	tex7 = THREE.ImageUtils.loadTexture('images/Cover6.jpg');
+	tex8 = THREE.ImageUtils.loadTexture('images/Cover7.jpg');
+	flo	 = THREE.ImageUtils.loadTexture('images/wood.jpg');
+    geometry = new THREE.PlaneGeometry(50,50);
+    material = new THREE.MeshLambertMaterial();
+
+    mesh = new THREE.Mesh(geometry, material);
+	mesh2 = new THREE.Mesh(geometry, material);
+	mesh3 = new THREE.Mesh(geometry, material);
+	mesh4 = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
+	scene.add(mesh2);
+	scene.add(mesh3);
+	scene.add(mesh4);
+	mesh.position.set(-99, 8, -50);
+	mesh2.position.set(-99, 8, 50);
+	mesh3.position.set(-50, 8, -99);
+	mesh4.position.set(50, 8, -99);
+	mesh.rotation.y = Math.PI/2;
+	mesh2.rotation.y = Math.PI/2;
+	
+	mesh.name = "one";
+	mesh2.name = "two";
+	mesh3.name = "three";
+	mesh4.name = "four";
+	
+	var wall_geom = new THREE.BoxGeometry (10,65,200);
+	var wall_mat = new THREE.MeshBasicMaterial({
+            map: flo,
+            side: THREE.DoubleSide
+        });
+	leftwall_box = new THREE.Mesh (wall_geom, wall_mat);
+	leftwall_box.position.set (-105,8,0);	
+	scene.add (leftwall_box);
+	
+	
+	rightwall_box = new THREE.Mesh (wall_geom, wall_mat);
+	rightwall_box.position.set (0,8,-105);	
+	scene.add (rightwall_box);
+	rightwall_box.rotation.y = -1*Math.PI/2;
+	
+    light = new THREE.PointLight(0xffffff);
+    light.position.set(100, 300, 200);
+    scene.add(light);
+
+	var floor_geom = new THREE.PlaneGeometry(200,200);
+	var floor_mat = new THREE.MeshLambertMaterial ({
+			map: flo,
+            side: THREE.DoubleSide
+        });
+	floor = new THREE.Mesh (floor_geom, floor_mat);
+	floor.position.set (0,-25,0);
+	floor.rotation.x = Math.PI/2;
+	scene.add (floor);
+
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+	
+	
+
+	
+
+	var ambientLight = new THREE.AmbientLight (0x111111);
+	scene.add(ambientLight);
+	
+	window.addEventListener ('resize', onWindowResize, false);	
+
+	raycaster = new THREE.Raycaster();
+	document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+
+    // the following is not needed for "embed" mode
+    // document.body.appendChild(renderer.domElement);
+}
+
+// remember "no warp in <body>"
+//
+
+function onDocumentMouseDown( event ) {
+
+	// PICKING DETAILS: 
+	// convert mouse.xy = [-1,1]^2 (NDC)
+	// unproject (mouse.xy, 1) to a point on the far plane (in world coordinate)
+	// set raycaster (origin, direction)
+	// find intersection objects, (closest first) 
+	// each record as
+	// [ { distance, point, face, faceIndex, object }, ... ]
+
+	event.preventDefault();
+	mouse.x = ( event.clientX / theCanvasFrame.clientWidth ) * 2 - 1;
+	mouse.y = - ( event.clientY / theCanvasFrame.clientHeight ) * 2 + 1;
+
+	// find intersections
+	var vector = new THREE.Vector3( mouse.x, mouse.y, 1 ).unproject( camera );
+	raycaster.set( camera.position, vector.sub( camera.position ).normalize() );
+	var intersects = raycaster.intersectObjects( scene.children );
+	if ( intersects.length > 0 ) {
+		if (intersects[0].object.name === "one") chawall ("one");
+		else if (intersects[0].object.name === "two") chawall ("two");
+		else if (intersects[0].object.name === "three") chawall ("three");
+		else if (intersects[0].object.name === "four") chawall ("four");
+	}
+	
+}
+
+function tst(which) {
+
+    if(wall === 1){
+		if (which === 1) {
+			//alert("click");
+			mesh.material = new THREE.MeshBasicMaterial({
+				map: tex1,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 2) {
+			mesh.material = new THREE.MeshBasicMaterial({
+				map: tex2,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 3) {
+			mesh.material = new THREE.MeshBasicMaterial({
+				map: tex3,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 4) {
+			mesh.material = new THREE.MeshBasicMaterial({
+				map: tex4,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 5) {
+			//alert("click");
+			mesh.material = new THREE.MeshBasicMaterial({
+				map: tex5,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 6) {
+			mesh.material = new THREE.MeshBasicMaterial({
+				map: tex6,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 7) {
+			mesh.material = new THREE.MeshBasicMaterial({
+				map: tex7,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 8) {
+			mesh.material = new THREE.MeshBasicMaterial({
+				map: tex8,
+				side: THREE.DoubleSide
+			});
+		}
+		
+	}
+	else if(wall === 2){
+		if (which === 1) {
+			//alert("click");
+			mesh2.material = new THREE.MeshBasicMaterial({
+				map: tex1,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 2) {
+			mesh2.material = new THREE.MeshBasicMaterial({
+				map: tex2,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 3) {
+			mesh2.material = new THREE.MeshBasicMaterial({
+				map: tex3,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 4) {
+			mesh2.material = new THREE.MeshBasicMaterial({
+				map: tex4,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 5) {
+			mesh2.material = new THREE.MeshBasicMaterial({
+				map: tex5,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 6) {
+			mesh2.material = new THREE.MeshBasicMaterial({
+				map: tex6,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 7) {
+			mesh2.material = new THREE.MeshBasicMaterial({
+				map: tex7,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 8) {
+			mesh2.material = new THREE.MeshBasicMaterial({
+				map: tex8,
+				side: THREE.DoubleSide
+			});
+		}
+	}
+	else if(wall === 3){
+		if (which === 1) {
+			//alert("click");
+			mesh3.material = new THREE.MeshBasicMaterial({
+				map: tex1,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 2) {
+			mesh3.material = new THREE.MeshBasicMaterial({
+				map: tex2,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 3) {
+			mesh3.material = new THREE.MeshBasicMaterial({
+				map: tex3,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 4) {
+			mesh3.material = new THREE.MeshBasicMaterial({
+				map: tex4,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 5) {
+			mesh3.material = new THREE.MeshBasicMaterial({
+				map: tex5,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 6) {
+			mesh3.material = new THREE.MeshBasicMaterial({
+				map: tex6,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 7) {
+			mesh3.material = new THREE.MeshBasicMaterial({
+				map: tex7,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 8) {
+			mesh3.material = new THREE.MeshBasicMaterial({
+				map: tex8,
+				side: THREE.DoubleSide
+			});
+		}
+	}
+	else if(wall === 4){
+		if (which === 1) {
+			//alert("click");
+			mesh4.material = new THREE.MeshBasicMaterial({
+				map: tex1,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 2) {
+			mesh4.material = new THREE.MeshBasicMaterial({
+				map: tex2,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 3) {
+			mesh4.material = new THREE.MeshBasicMaterial({
+				map: tex3,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 4) {
+			mesh4.material = new THREE.MeshBasicMaterial({
+				map: tex4,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 5) {
+			mesh4.material = new THREE.MeshBasicMaterial({
+				map: tex5,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 6) {
+			mesh4.material = new THREE.MeshBasicMaterial({
+				map: tex6,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 7) {
+			mesh4.material = new THREE.MeshBasicMaterial({
+				map: tex7,
+				side: THREE.DoubleSide
+			});
+		} else if (which === 8) {
+			mesh4.material = new THREE.MeshBasicMaterial({
+				map: tex8,
+				side: THREE.DoubleSide
+			});
+		}
+	}
+    // debugger;
+}
+
+function animate() {
+    controls.update();
+
+    requestAnimationFrame(animate);
+    render();
+}
+
+function onWindowResize()
+{
+	camera.aspect = theCanvasFrame.clientWidth / theCanvasFrame.clientHeight;
+	camera.updateProjectionMatrix();
+	renderer.setSize (theCanvasFrame.clientWidth, theCanvasFrame.clientHeight);
+}
+
+function render() {
+    renderer.render(scene, camera);
+}
+
+</script>
+</body>
+
+</html>
