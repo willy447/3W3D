@@ -1,0 +1,353 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<style>
+	#container {
+		width:60%;
+		float:left;
+		margin-top: -500px;
+	}
+	#cnvsFrame {
+		height: 0px;
+		padding-bottom:100%;
+	}
+	body {
+		overflow: auto;
+	}
+
+</style>
+</head>
+
+<body>
+
+<h1 style="text-align:center"> My first game </h1>
+<hr>
+<div id="container">
+<div id="cnvsFrame">
+<canvas id="cnvs"> </canvas>
+
+</div>
+</div>
+<div style="float:right; ">
+User Name:
+    <input id="user" style="width:100%" type="text" value="Mickey">
+    <br/>
+    <br/>
+    <button id="login" style="width:100%">Login</button>
+    <p id='greeting'></p>
+	<br/>
+	<br/>
+	BGM (<a href="javascript:toggle();">dimmer</a>)
+</div>
+
+<audio id="collisionsound" style="display:none">
+<source src="music/collision3.wav" type='audio/wav'>
+</audio>
+
+<audio id="soundtrack" autoplay loop style="display:none">
+<source src="music/hw7mu.mp3" type='audio/mp3'>
+</audio>
+
+
+
+<script src="js/three.min.js"></script>
+<script src="js/OrbitControls.js"></script>
+<script src="js/puck.js"></script>
+
+<script>
+var records = [];
+var collisionSound, soundTrack;
+var isPaused = false, soundVal = 0.3, sign = 1.0;
+var camera, scene, renderer, geometry, material, mesh, controls,score=0;
+var clock = new THREE.Clock();
+var puck, pucks = [], pID = 0;
+var ground;
+var meshmove=0;
+var mouse = new THREE.Vector2();
+var udx=0;
+var gameMax_p=1;
+var overcount=0;
+var theCanvasFrame = document.getElementById("cnvsFrame");
+
+init();
+animate();
+
+$("#login").click(function () {
+    var name = document.getElementById('user').value;
+    alert(name + " is playing");
+	document.getElementById('greeting').innerHTML = "Welcome!";
+    
+});
+
+function toggle() {
+	isPaused = !isPaused;
+	sign = isPaused ? -1 : 1;
+	console.log (isPaused);
+}
+    
+function init() {
+    //scene
+	var theCanvas = document.getElementById("cnvs");
+    var ww = theCanvasFrame.clientWidth;
+    var hh = theCanvasFrame.clientHeight;
+	
+	collisionSound = document.getElementById ('collisionsound');
+	soundTrack = document.getElementById ('soundtrack');
+	collisionSound.volume=0.4;
+	 
+	var objStr = JSON.stringify(records);
+    localStorage.setItem("scores", objStr);
+
+    //renderer
+    renderer = new THREE.WebGLRenderer({
+        canvas: theCanvas,
+        antialias: true
+    });
+    renderer.setSize(ww, hh);
+    renderer.setClearColor(0x888888);
+	
+    scene = new THREE.Scene();
+    //camera
+    camera = new THREE.PerspectiveCamera(50, ww/hh, 1, 1000);
+	camera.position.x = 0;
+	camera.position.y = 380;
+    camera.position.z = 500;
+	camera.lookAt (new THREE.Vector3(0,0,0));
+    scene.add(camera);
+	
+    // build an invisible plane, overlapping the grid
+	plane = new THREE.Mesh(
+		new THREE.PlaneBufferGeometry( 800, 800, 8, 8 ),
+		new THREE.MeshBasicMaterial( { color: 0xff0000, opacity: 0.25, transparent: true } )
+	);
+	plane.rotation.x = -Math.PI/2;
+	plane.visible = false;   // invisible, for picking only
+	scene.add( plane );
+	
+	geometrycyl = new THREE.BoxGeometry(40, 20, 5);
+    material = new THREE.MeshBasicMaterial({
+        transparent: true,
+        color: 0xff2211,
+        opacity: 0.6
+    });
+	meshclyD = new THREE.Mesh(geometrycyl, material);
+    meshclyD.position.set(0, 10, 100-2.5);
+    scene.add(meshclyD);
+	
+	meshclyU = new THREE.Mesh(geometrycyl, material);
+    meshclyU.position.set(0, 10, -100+2.5);
+    scene.add(meshclyU);
+	
+	
+	
+	//wall
+    
+    geometryLR = new THREE.BoxGeometry(220, 30, 10);
+    material = new THREE.MeshBasicMaterial({
+        transparent: true,
+        color: 0xff2387,
+        opacity: 0.4
+    });
+    geometryUD = new THREE.BoxGeometry(110, 30, 10);
+    material = new THREE.MeshBasicMaterial({
+        transparent: true,
+        color: 0xff2387,
+        opacity: 0.4
+    });
+
+    meshDL = new THREE.Mesh(geometryUD, material);
+    meshDL.position.set(-55, 15, 105);
+    scene.add(meshDL);
+    meshDR = meshDL.clone();
+    meshDR.position.set(55, 15, 105);
+    scene.add(meshDR);
+    
+    meshUL = meshDL.clone();
+    meshUL.position.set(-55, 15, -105);
+    scene.add(meshUL);
+    meshUR = meshDL.clone();
+    meshUR.position.set(55, 15, -105);
+    scene.add(meshUR);
+    
+    
+    meshL = new THREE.Mesh(geometryLR, material);
+    meshL.rotation.y = Math.PI / 2;
+    meshL.position.set(105, 15, 0);
+    scene.add(meshL);
+    
+    meshR = meshL.clone();
+    meshR.rotation.y = Math.PI / 2;
+    meshR.position.set(-105, 15, 0);
+    scene.add(meshR);
+    
+	var w = [];
+		for(var y = 0; y < 4 ; y++)
+			if(Math.floor(Math.random()*2+1)!=2)
+				w[y]=-1;
+			else
+				w[y]=1;
+				
+    //puck
+    for (var i = 0; i < 1; i++)
+    {
+        puck = new Puck();
+		
+        puck.pos = new THREE.Vector3 (w[0]*Math.random()*100, 2, w[1]*Math.random()*100);
+        puck.vel = new THREE.Vector3 (w[2]*(Math.random()*100+50), 0, w[3]*(Math.random()*100+50));
+		
+    }
+    //ground
+    ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200, 130, 130),
+    new THREE.MeshPhongMaterial({
+        color: 0x888888,
+        side: THREE.DoubleSide
+    }));
+    ground.rotation.x = -Math.PI / 2;
+    scene.add(ground);
+    //ambientLight
+    var ambientLight = new THREE.AmbientLight(0x111111);
+    scene.add(ambientLight);
+    
+    
+	
+	
+    
+    
+    
+	
+    //controls
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    
+    //timeout
+	setTimeout(scoreCount,100);
+    setTimeout(timeout, 1000);
+	setTimeout(itetimeout, 10000);
+	
+    document.body.appendChild(renderer.domElement);
+	
+	window.addEventListener ('resize', onWindowResize, false);	
+	window.addEventListener( 'mousemove', onDocumentMouseMove, false );
+
+}
+
+function onWindowResize()
+{
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+	renderer.setSize (window.innerWidth, window.innerHeight);
+}
+
+function onDocumentMouseMove( event ) {
+	event.preventDefault();
+	mouse.x = ( (event.clientX-15) / theCanvasFrame.clientWidth ) * 2 - 1;
+	mouse.y = - ( event.clientY / theCanvasFrame.clientHeight ) * 2 + 1;
+	
+	var vector = new THREE.Vector3( mouse.x, mouse.y, 0.5 ).unproject( camera );
+	var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
+
+	var intersects = raycaster.intersectObject( plane );
+	//cyl.position.set (mouse.x,0,mouse.y);
+	
+	if (intersects.length > 0) {
+		var move = intersects[0].point.clone();
+		if(move.x<-80)
+			move.x=-80;
+		if(move.x>80)
+			move.x=80;
+		udx=move.x;
+		meshclyU.position.set (move.x,10,-100+2.5);
+		meshclyD.position.set (move.x,10,100-2.5);
+	}
+}
+
+function scoreCount()
+ {
+	score++;
+	setTimeout(scoreCount,1000);
+ }
+function itetimeout ()
+{
+	var gameMax=5;
+	gameMax_p++;
+	if(gameMax_p>gameMax)
+		gameMax_p=gameMax;
+	
+    setTimeout(itetimeout, 10000);
+}
+
+function timeout ()
+{
+    var countitem=0;
+	
+    for (var i = 0; i < pucks.length; i++)
+    {
+        if (pucks[i] != undefined)
+        {
+			countitem++;
+        }
+    }
+	for (var i = 0; i < gameMax_p-countitem; i++)
+    {
+        puck = new Puck();
+		
+		var w = [];
+		for(var y = 0; y < 4 ; y++)
+			if(Math.floor(Math.random()*2+1)!=2)
+				w[y]=-1;
+			else
+				w[y]=1;
+        puck.pos = new THREE.Vector3 (w[0]*Math.random()*100, 2, w[1]*Math.random()*100);
+        puck.vel = new THREE.Vector3 (w[2]*(Math.random()*150+50), 0, w[3]*(Math.random()*150+50));
+        
+    }
+    setTimeout(timeout, 1000);
+}
+function animate() {
+
+	soundVal += sign*0.01;
+	soundVal = THREE.Math.clamp (soundVal, 0, 0.3);
+	soundtrack.volume = soundVal;
+
+    var dt = clock.getDelta();
+	meshmove+=dt*0.5;
+	
+	meshDR.position.set(55+meshmove, 15, 105);
+    meshDL.position.set(-55-meshmove, 15, 105);
+    
+    meshUR.position.set(55+meshmove, 15, -105);
+    meshUL.position.set(-55-meshmove, 15, -105);
+		for (var i = 0; i < pucks.length; i++)
+		{
+			if (pucks[i] != undefined)
+			{
+				pucks[i].update (dt);
+				pucks[i].collision();
+			}
+		}
+	if(overcount==5)
+	{
+		window.alert(Math.floor(score/60)+"分 "+score%60+"秒 \n"+"遊戲結束");
+		return ;
+	}
+	
+	
+    controls.update();
+
+    requestAnimationFrame(animate);
+    render();
+}
+
+function onWindowResize()
+{
+	camera.aspect = theCanvasFrame.clientWidth / theCanvasFrame.clientHeight;
+	camera.updateProjectionMatrix();
+	renderer.setSize (theCanvasFrame.clientWidth, theCanvasFrame.clientHeight);
+}
+
+function render() {
+    renderer.render(scene, camera);
+}
+</script>
+
+</body>
+</html>
